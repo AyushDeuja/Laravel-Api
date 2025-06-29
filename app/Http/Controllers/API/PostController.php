@@ -6,8 +6,9 @@ use App\Models\Post;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\API\BaseController as BaseController;
 
-class PostController extends Controller
+class PostController extends BaseController
 {
     /**
      * Display a listing of the resource.
@@ -15,11 +16,7 @@ class PostController extends Controller
     public function index()
     {
         $data['posts'] = Post::all();
-        return response()->json([
-            'status' => true,
-            'message' => 'All Post Data',
-            'data' => $data,
-        ], 200);
+        return $this->sendResponse($data, 'All Post Data');
     }
 
     /**
@@ -36,11 +33,7 @@ class PostController extends Controller
             ]
         );
         if ($validateUser->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation Error',
-                'errors' => $validateUser->errors()->all()
-            ], 401);
+            return $this->sendError('Validation Error', $validateUser->errors()->all(), 401);
         }
 
         $img = $request->image;
@@ -53,11 +46,7 @@ class PostController extends Controller
             'description' => $request->description,
             'image' => $imageName,
         ]);
-        return response()->json([
-            'status' => true,
-            'message' => 'Post Created Successfully',
-            "post" => $post,
-        ], 200);
+        return $this->sendResponse($post, 'Post Created Successfully');
     }
 
     /**
@@ -72,11 +61,7 @@ class PostController extends Controller
             'image'
         )->where(['id' => $id])->get();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Your Single Post',
-            "data" => $data,
-        ], 200);
+        return $this->sendResponse($data, 'Your Single Post');
     }
 
     /**
@@ -93,20 +78,16 @@ class PostController extends Controller
             ]
         );
         if ($validateUser->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation Error',
-                'errors' => $validateUser->errors()->all()
-            ], 401);
+            return $this->sendError('Validation Error', $validateUser->errors()->all(), 401);
         }
 
-        $post = Post::select('id', 'image')->get();
+        $postImage = Post::select('id', 'image')->where(['id' => $id])->get();
 
         if ($request->image != null) {
             $path = public_path() . '/uploads/';
 
-            if ($post->image != '' && $post->image != null) {
-                $old_file = $path . $post->image;
+            if ($postImage[0]->image != '' && $postImage[0]->image != null) {
+                $old_file = $path . $postImage[0]->image;
                 if (file_exists($old_file)) {
                     unlink($old_file);
                 }
@@ -115,9 +96,9 @@ class PostController extends Controller
             $img = $request->image;
             $ext = $img->getClientOriginalExtension();
             $imageName = time() . '.' . $ext;
-            $img->move(public_path() . '/uploads', $imageName);
+            $img->move(public_path() . '/uploads/', $imageName);
         } else {
-            $imageName = $post->image;
+            $imageName = $postImage[0]->image;
         }
 
         $post = Post::where(['id' => $id])->update([
@@ -125,11 +106,8 @@ class PostController extends Controller
             'description' => $request->description,
             'image' => $imageName,
         ]);
-        return response()->json([
-            'status' => true,
-            'message' => 'Post Updated Successfully',
-            "post" => $post,
-        ], 200);
+
+        return $this->sendResponse($post, 'Post Updated Successfully');
     }
 
 
@@ -146,10 +124,6 @@ class PostController extends Controller
 
         $post = Post::where('id', $id)->delete();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Your Post Has Been Removed',
-            "post" => $post,
-        ], 200);
+        return $this->sendResponse($post, 'Your Post Has Been Removed');
     }
 }
